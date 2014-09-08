@@ -5,6 +5,8 @@ package main
 import "C"
 
 import (
+	"code.google.com/p/gompd/mpd"
+	"github.com/ctgrl/go-dbus/dbus"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -52,17 +54,31 @@ func main() {
 	if dpy == nil {
 		log.Fatal("Can't open display")
 	}
+	mpdClient, err := mpd.Dial("tcp", "localhost:6600")
+	if err != nil {
+		log.Fatal(err)
+	}
 	for {
 		t := time.Now().Format("15:04")
 		b, err := getBatteryPercentage("/sys/class/power_supply/BAT1")
 		if err != nil {
 			log.Fatal(err)
 		}
-		l, err := getLoadAverage("/proc/loadavg")
+		status, err := mpdClient.Status()
 		if err != nil {
 			log.Fatal(err)
 		}
-		s := formatStatus("%s :: %s :: %d%%", t, l, b)
+		var np string
+		if status["state"] == "play" || status["state"] == "pause" {
+			attrs, err := mpdClient.CurrentSong()
+			if err != nil {
+				log.Fatal(err)
+			}
+			np = fmt.Sprintf("\x1b[1;31m%s\x1b[0m \x1b[1;37mby\x1b[0m \x1b[1;33m%s\x1b[0m \x1b[1;37mfrom\x1b[0m \x1b[1;34m%s\x1b[0m \x1b[1;30m::\x1b[0m ", attrs["Title"], attrs["Artist"], attrs["Album"])
+		} else {
+			np = ""
+		}
+		s := formatStatus("%s\x1b[1;32m%d%%\x1b[0m \x1b[1;30m::\x1b[0m %s", np, b, t)
 		setStatus(s)
 		time.Sleep(time.Second)
 	}
