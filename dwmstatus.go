@@ -6,7 +6,6 @@ import "C"
 
 import (
 	"code.google.com/p/gompd/mpd"
-	"github.com/ctgrl/go-dbus/dbus"
 	"fmt"
 	"io/ioutil"
 	"log"
