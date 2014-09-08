@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"time"
 )
 
@@ -26,6 +27,15 @@ func getBatteryPercentage(path string) (perc int, err error) {
 	fmt.Sscanf(string(energy_now), "%d", &enow)
 	fmt.Sscanf(string(energy_full), "%d", &efull)
 	return enow * 100 / efull, nil
+}
+
+func getLoadAverage(file string) (lavg string, err error) {
+	loadavg, err := ioutil.ReadFile(file)
+	if err != nil {
+		log.Fatal(err)
+		return "Couldn't read loadavg", err
+	}
+	return strings.Join(strings.Fields(string(loadavg))[:3], " "), nil
 }
 
 func setStatus(s *C.char) {
@@ -48,7 +58,11 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		s := formatStatus("%s :: %d%%", t, b)
+		l, err := getLoadAverage("/proc/loadavg")
+		if err != nil {
+			log.Fatal(err)
+		}
+		s := formatStatus("%s :: %s :: %d%%", t, l, b)
 		setStatus(s)
 		time.Sleep(time.Second)
 	}
